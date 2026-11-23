@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MailHub · 邮箱验证码聚合</title>
+<style>
+:root{color-scheme:light;--bg:#fff;--ink:#121212;--sub:#76839b;--blue:#0084ff;--blue2:#0066d6;--red:#f1403c;--green:#12b76a;--line:#e8eef7;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",Helvetica,Arial,sans-serif;min-height:100vh;position:relative;overflow-x:hidden}
+body::before,body::after{content:"";position:fixed;z-index:0;border-radius:50%;filter:blur(90px);pointer-events:none}
+body::before{width:420px;height:420px;background:#cfe6ff;top:-120px;right:-80px;opacity:.7}
+body::after{width:380px;height:380px;background:#e3f1ff;bottom:-120px;left:-100px;opacity:.8}
+.wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:28px 20px}
+.btn{cursor:pointer;border:1px solid rgba(255,255,255,.7);color:#fff;font-size:14px;font-weight:600;padding:10px 20px;border-radius:12px;
+background:linear-gradient(135deg,rgba(0,132,255,.88),rgba(0,102,214,.82));backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%);
+box-shadow:0 8px 24px rgba(0,132,255,.28),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(0,132,255,.36),inset 0 1px 0 rgba(255,255,255,.6)}
+.btn:active{transform:translateY(0)}
+.btn.ghost{color:var(--blue);background:rgba(0,132,255,.08);border-color:rgba(0,132,255,.25);box-shadow:none}
+.btn.sm{padding:7px 14px;font-size:13px;border-radius:10px}
+.glass{background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(0,132,255,.12);box-shadow:0 10px 40px rgba(20,60,120,.07)}
+#login{display:flex;align-items:center;justify-content:center;min-height:90vh}
+.lcard{width:100%;max-width:400px;padding:40px 32px;border-radius:24px;text-align:center}
+.logo{width:56px;height:56px;margin:0 auto 18px;border-radius:16px;display:grid;place-items:center;font-size:26px;color:#fff;background:linear-gradient(135deg,#3aa0ff,#0066d6);box-shadow:0 10px 24px rgba(0,132,255,.3)}
+h1{margin:0 0 8px;font-size:24px}
+.muted{color:var(--sub);font-size:14px;line-height:1.7}
+#app{display:none}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px}
+.brand .logo{width:38px;height:38px;margin:0;font-size:18px;border-radius:11px}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.user{font-size:13px;color:var(--sub);padding:6px 12px;border-radius:20px}
+.grid{display:grid;grid-template-columns:220px 1fr;gap:20px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.side{padding:14px;border-radius:20px;align-self:start}
+.acct{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:12px;cursor:pointer;font-size:14px;margin-bottom:4px}
+.acct:hover{background:rgba(0,132,255,.06)}
+.acct.on{background:rgba(0,132,255,.12);color:var(--blue2);font-weight:600}
+.acct small{color:var(--sub);font-weight:400}
+.list{display:flex;flex-direction:column;gap:14px}
+.item{padding:18px 20px;border-radius:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-left:5px solid var(--red);transition:border-color .4s}
+.item.done{border-left-color:var(--green)}
+.meta{flex:1;min-width:180px}
+.from{font-weight:600;font-size:15px}
+.subj{color:var(--sub);font-size:13px;margin-top:4px}
+.code{font-size:30px;font-weight:700;letter-spacing:5px;font-variant-numeric:tabular-nums}
+.badge{font-size:13px;font-weight:600;padding:6px 12px;border-radius:20px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.red{color:var(--red);background:rgba(241,64,60,.1)}
+.green{color:var(--green);background:rgba(18,183,106,.12)}
+.empty{text-align:center;padding:60px 0;color:var(--sub)}
+.note{margin-top:22px;padding:14px 18px;border-radius:14px;font-size:12.5px;line-height:1.8;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="login">
+    <div class="lcard glass">
+      <div class="logo">✉</div>
+      <h1>MailHub</h1>
+      <p class="muted">一次登录，所有邮箱验证码<br>自动汇总，无需再输入账号密码</p>
+      <p><button class="btn" id="gh" style="width:100%;margin-top:14px">使用 GitHub 登录</button></p>
+    </div>
+  </section>
+
+  <section id="app">
+    <div class="top">
+      <div class="brand"><div class="logo">✉</div>MailHub</div>
+      <div class="actions">
+        <span class="user glass" id="user">GitHub 已登录</span>
+        <button class="btn ghost sm" id="sim">立即刷新</button>
+        <button class="btn ghost sm" id="out">退出</button>
+      </div>
+    </div>
+    <div class="grid">
+      <aside class="side glass" id="side"></aside>
+      <main class="list" id="list"></main>
+    </div>
+    <div class="note glass">
+      🔴 红色：验证码收到后 24 小时内，显示倒计时　🟢 绿色：满 24 小时后自动变绿<br>
+      <span id="err"></span>
+    </div>
+  </section>
+</div>
+
+<script>
+const DAY=864e5, $=s=>document.querySelector(s);
+let accts=[],mails=[],cur='all';
+async function load(){
+  try{
+    const r=await fetch('/api/mails');
+    if(r.status===401){showApp(false);return}
+    const d=await r.json();accts=d.accounts;mails=d.mails;
+    $('#err').textContent=d.errors.join('；');
+    showApp(true);renderSide();renderList();
+  }catch(e){$('#err').textContent='加载失败，稍后自动重试'}
+}
+
+const pad=n=>String(n).padStart(2,'0');
+const fmt=ms=>`${pad(Math.floor(ms/36e5))}:${pad(Math.floor(ms%36e5/6e4))}:${pad(Math.floor(ms%6e4/1e3))}`;
+
+function renderSide(){
+  const c=a=>mails.filter(m=>a==='all'||m.acct===a).length;
+  $('#side').innerHTML=['all',...accts].map(a=>
+    `<div class="acct ${a===cur?'on':''}" data-a="${a}"><span>${a==='all'?'全部邮箱':a}</span><small>${c(a)}</small></div>`).join('');
+  document.querySelectorAll('.acct').forEach(e=>e.onclick=()=>{cur=e.dataset.a;renderSide();renderList()});
+}
+function renderList(){
+  const rows=mails.filter(m=>cur==='all'||m.acct===cur).sort((a,b)=>b.t-a.t);
+  $('#list').innerHTML=rows.length?rows.map(m=>`
+    <div class="item glass" data-id="${m.id}">
+      <div class="meta"><div class="from">${m.from}</div><div class="subj">${m.subj} · ${m.acct}</div></div>
+      <div class="code">${m.code}</div>
+      <span class="badge"></span>
+      <button class="btn sm" data-c="${m.code}">复制</button>
+    </div>`).join(''):'<div class="empty">暂无验证码</div>';
+  document.querySelectorAll('[data-c]').forEach(b=>b.onclick=async()=>{
+    try{await navigator.clipboard.writeText(b.dataset.c);b.textContent='已复制'}catch(e){b.textContent='请手动复制'}
+    setTimeout(()=>b.textContent='复制',1200)});
+  tick();
+}
+function tick(){
+  document.querySelectorAll('.item').forEach(el=>{
+    const m=mails.find(x=>x.id==el.dataset.id); if(!m)return;
+    const left=m.t+DAY-Date.now(), b=el.querySelector('.badge');
+    if(left>0){el.classList.remove('done');b.className='badge red';b.textContent='● '+fmt(left)+' 后转绿'}
+    else{el.classList.add('done');b.className='badge green';b.textContent='● 已满 24 小时'}
+  });
+}
+setInterval(tick,1000);
+
+function showApp(on){$('#login').style.display=on?'none':'flex';$('#app').style.display=on?'block':'none'}
+$('#gh').onclick=()=>location.href='/api/login';
+$('#out').onclick=()=>location.href='/api/logout';
+$('#sim').onclick=load;
+load();setInterval(load,20000);
+</script>
+</body>
+</html>
