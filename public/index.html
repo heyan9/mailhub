@@ -22,7 +22,7 @@ box-shadow:0 8px 24px rgba(0,132,255,.28),inset 0 1px 0 rgba(255,255,255,.55);tr
 .btn.ghost{color:var(--blue);background:rgba(0,132,255,.08);border-color:rgba(0,132,255,.25);box-shadow:none}
 .btn.sm{padding:7px 14px;font-size:13px;border-radius:10px}
 .glass{background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);border:1px solid rgba(0,132,255,.12);box-shadow:0 10px 40px rgba(20,60,120,.07)}
-#login{display:flex;align-items:center;justify-content:center;min-height:90vh}
+#login{display:none;align-items:center;justify-content:center;min-height:90vh}
 .lcard{width:100%;max-width:400px;padding:40px 32px;border-radius:24px;text-align:center}
 .logo{width:56px;height:56px;margin:0 auto 18px;border-radius:16px;display:grid;place-items:center;font-size:26px;color:#fff;background:linear-gradient(135deg,#3aa0ff,#0066d6);box-shadow:0 10px 24px rgba(0,132,255,.3)}
 h1{margin:0 0 8px;font-size:24px}
@@ -52,10 +52,17 @@ h1{margin:0 0 8px;font-size:24px}
 .green{color:var(--green);background:rgba(18,183,106,.12)}
 .empty{text-align:center;padding:60px 0;color:var(--sub)}
 .note{margin-top:22px;padding:14px 18px;border-radius:14px;font-size:12.5px;line-height:1.8;color:var(--sub)}
+#bar{position:fixed;top:0;left:0;height:3px;width:0;z-index:50;background:linear-gradient(90deg,#3aa0ff,#0066d6);opacity:0}
+#boot{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:90vh;gap:18px;color:var(--sub);font-size:14px}
+#boot .logo{margin:0}
+.spin{width:30px;height:30px;border-radius:50%;border:3px solid rgba(0,132,255,.15);border-top-color:var(--blue);animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+<div id="bar"></div>
 <div class="wrap">
+  <section id="boot"><div class="logo">✉</div><div class="spin"></div><div>正在同步邮箱…</div></section>
   <section id="login">
     <div class="lcard glass">
       <div class="logo">✉</div>
@@ -88,16 +95,21 @@ h1{margin:0 0 8px;font-size:24px}
 <script>
 const DAY=864e5, $=s=>document.querySelector(s);
 let accts=[],mails=[],cur='all';
+let busy=false;
+function bar(on){const b=$('#bar');
+  if(on){b.style.transition='none';b.style.width='0';b.style.opacity='1';void b.offsetWidth;b.style.transition='width 10s cubic-bezier(.1,.7,.2,1)';b.style.width='88%'}
+  else{b.style.transition='width .25s,opacity .4s .25s';b.style.width='100%';b.style.opacity='0'}}
 async function load(){
+  if(busy)return;busy=true;bar(true);$('#sim').textContent='刷新中…';
   try{
     const r=await fetch('/api/mails');
     if(r.status===401){showApp(false);return}
     const d=await r.json();accts=d.accounts;mails=d.mails;
     $('#err').textContent=d.errors.join('；');
     showApp(true);renderSide();renderList();
-  }catch(e){$('#err').textContent='加载失败，稍后自动重试'}
+  }catch(e){$('#err').textContent='加载失败，稍后自动重试';showApp(true)}
+  finally{busy=false;bar(false);$('#sim').textContent='立即刷新'}
 }
-
 const pad=n=>String(n).padStart(2,'0');
 const fmt=ms=>`${pad(Math.floor(ms/36e5))}:${pad(Math.floor(ms%36e5/6e4))}:${pad(Math.floor(ms%6e4/1e3))}`;
 
@@ -131,7 +143,7 @@ function tick(){
 }
 setInterval(tick,1000);
 
-function showApp(on){$('#login').style.display=on?'none':'flex';$('#app').style.display=on?'block':'none'}
+function showApp(on){$('#boot').style.display='none';$('#login').style.display=on?'none':'flex';$('#app').style.display=on?'block':'none'}
 $('#gh').onclick=()=>location.href='/api/login';
 $('#out').onclick=()=>location.href='/api/logout';
 $('#sim').onclick=load;
